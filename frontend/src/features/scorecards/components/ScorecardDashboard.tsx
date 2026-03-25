@@ -32,6 +32,13 @@ export const ScorecardDashboard: React.FC = () => {
     }
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: scorecardApi.deleteScorecard,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['scorecards'] });
+    }
+  });
+
   const saveMappingMutation = useMutation({
     mutationFn: async () => {
       const promises = Object.entries(localMappings).map(([topicId, scorecardId]) => {
@@ -112,8 +119,24 @@ export const ScorecardDashboard: React.FC = () => {
                   </td>
                   <td className="py-4 px-6">
                     <div className="flex items-center justify-center gap-3">
-                      <button className="text-slate-400 hover:text-violet-600 transition-colors"><Edit2 size={18} /></button>
-                      <button className="text-slate-400 hover:text-red-600 transition-colors"><Trash2 size={18} /></button>
+                      <button 
+                        onClick={() => navigate('/edit/' + sc.id)}
+                        className="text-slate-400 hover:text-violet-600 transition-colors"
+                        title="Chỉnh sửa"
+                      >
+                        <Edit2 size={18} />
+                      </button>
+                      <button 
+                        onClick={() => {
+                          if (window.confirm('Bạn có chắc chắn muốn xóa bộ tiêu chí này không?')) {
+                            deleteMutation.mutate(sc.id);
+                          }
+                        }}
+                        className="text-slate-400 hover:text-red-600 transition-colors"
+                        title="Xoá vĩnh viễn"
+                      >
+                        <Trash2 size={18} />
+                      </button>
                     </div>
                   </td>
                 </tr>

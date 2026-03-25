@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { importerApi } from '../api/importerApi';
-import { Criterion } from '@/types';
-import { Edit3, Sparkles, CheckCircle2, ListChecks } from 'lucide-react';
+import { Sparkles, Edit3 } from 'lucide-react';
 import clsx from 'clsx';
 
 export const SmartImporter: React.FC = () => {
+  const navigate = useNavigate();
   const [goal, setGoal] = useState('');
   const [rawText, setRawText] = useState('');
-  const [result, setResult] = useState<Criterion[] | null>(null);
 
   const generateMutation = useMutation({
     mutationFn: importerApi.generateScorecard,
     onSuccess: (data) => {
-      setResult(data);
+      navigate('/edit/new', { state: { importedCriteria: data, importedGoal: goal } });
     }
   });
 
@@ -41,7 +41,7 @@ export const SmartImporter: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="max-w-4xl mx-auto w-full">
         
         {/* Main Input Form */}
         <div className="lg:col-span-2 bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
@@ -101,61 +101,7 @@ export const SmartImporter: React.FC = () => {
           </div>
         </div>
 
-        {/* Feature Highlights / Results */}
-        <div className="space-y-4">
-          {!result ? (
-            <>
-              <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mb-4">
-                  <Sparkles size={20} />
-                </div>
-                <h3 className="font-bold text-slate-800 mb-2">Chuyển đổi siêu tốc</h3>
-                <p className="text-sm text-slate-500">Tự động nhận diện các bước nghiệp vụ và chuyển thành tiêu chí Đúng/Sai.</p>
-              </div>
-              <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                <div className="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center mb-4">
-                  <CheckCircle2 size={20} />
-                </div>
-                <h3 className="font-bold text-slate-800 mb-2">Độ chính xác cao</h3>
-                <p className="text-sm text-slate-500">AI được huấn luyện trên hàng ngàn kịch bản CSKH và Telesales thực tế.</p>
-              </div>
-              <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                <div className="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center mb-4">
-                  <ListChecks size={20} />
-                </div>
-                <h3 className="font-bold text-slate-800 mb-2">Tùy biến linh hoạt</h3>
-                <p className="text-sm text-slate-500">Bạn hoàn toàn có thể hiệu chỉnh trọng số và mô tả sau khi AI đề xuất.</p>
-              </div>
-            </>
-          ) : (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-full">
-              <div className="bg-slate-50 border-b border-slate-200 px-6 py-4">
-                <h3 className="font-bold text-slate-800">Kết quả (Mock Output)</h3>
-                <p className="text-xs text-slate-500">Tiêu chí được gợi ý từ AI</p>
-              </div>
-              <div className="p-6 flex-1 overflow-y-auto space-y-4">
-                {result.map((criterion, idx) => (
-                  <div key={idx} className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-sm">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-semibold text-violet-700">{criterion.code}</span>
-                      <span className="px-2 py-0.5 bg-white border border-slate-200 rounded text-[10px] font-bold text-slate-500 uppercase">
-                        {criterion.layer}
-                      </span>
-                    </div>
-                    <div className="text-slate-700 font-medium">{criterion.name}</div>
-                    {criterion.options_type && (
-                      <div className="mt-2 text-xs text-slate-500">
-                        Kiểu: {criterion.options_type} | YES: {criterion.yes_score} | NO: {criterion.no_score}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
-
-      </div>
     </div>
   );
 };
