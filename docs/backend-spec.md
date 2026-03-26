@@ -23,9 +23,15 @@ This document serves as the integration context for the Frontend team to consume
   // Only present if layer == "audio_rules"
   "audio_rules_data": {
     "max_hold_time_s": 30,
-    "ideal_speaking_rate_wpm": 120,
+    "consultant_speaking_time_ratio_min_percent": 40,
+    "consultant_speaking_time_ratio_max_percent": 70,
+    "max_interruptions": 3,
     "max_silence_duration_s": 10,
-    "overlapping_threshold_percent": 5
+    "overlapping_threshold_percent": 20,
+    "is_hold_time_enabled": true,
+    "is_speaker_ratio_enabled": true,
+    "is_interruptions_enabled": true,
+    "is_silence_enabled": true
   }
 }
 ```
@@ -58,17 +64,17 @@ Mock endpoint that processes natural language business procedures and returns ge
 }
 ```
 
-**Response (200 OK):** `List[Criterion]` corresponding exactly to the pre-filled structure from the UI screenshot.
+**Response (200 OK):** `List[Criterion]` corresponding exactly to the pre-filled structure from the UI screenshot, mixed dynamically with the Global Fallback's General and Audio rules.
 
 ---
 
 ## 3. Scorecard CRUD Services
 
-### `GET /scorecards/`
+### `GET /scorecards`
 Get all created scorecards.
 - **Response**: `List[Scorecard]`
 
-### `POST /scorecards/`
+### `POST /scorecards`
 Created a new scorecard draft/final version.
 - **Request Body**: `Scorecard` (without `id` field)
 - **Response**: `Scorecard` (returns mutated object with generated `id`)
@@ -89,10 +95,10 @@ Deletes a scorecard. Returns `204 No Content`.
 
 *Topics have unique IDs (e.g., `T-102`) and names.*
 
-### `GET /mappings/`
+### `GET /mappings`
 Get current scorecard <-> topic assignments.
 
-### `POST /mappings/`
+### `POST /mappings`
 Assign a scorecard to a specific topic.
 **Request Body:**
 ```json

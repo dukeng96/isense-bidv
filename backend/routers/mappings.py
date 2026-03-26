@@ -5,11 +5,11 @@ import database as db
 
 router = APIRouter(prefix="/mappings", tags=["Mappings"])
 
-@router.get("/", response_model=List[TopicMapping])
+@router.get("", response_model=List[TopicMapping])
 def get_mappings():
     return db.get_all_mappings()
 
-@router.post("/", response_model=TopicMapping, status_code=201)
+@router.post("", response_model=TopicMapping, status_code=201)
 def create_mapping(mapping: TopicMappingBase):
     if not db.get_scorecard(mapping.scorecard_id):
         raise HTTPException(status_code=400, detail="Scorecard ID does not exist")

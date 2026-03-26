@@ -6,7 +6,7 @@ import database as db
 
 router = APIRouter(prefix="/scorecards", tags=["Scorecards"])
 
-@router.get("/", response_model=List[Scorecard])
+@router.get("", response_model=List[Scorecard])
 def get_scorecards():
     return db.get_all_scorecards()
 
@@ -17,7 +17,7 @@ def get_scorecard(sc_id: str = Path(..., title="The ID of the scorecard to get")
         raise HTTPException(status_code=404, detail="Scorecard not found")
     return sc
 
-@router.post("/", response_model=Scorecard, status_code=201)
+@router.post("", response_model=Scorecard, status_code=201)
 def create_scorecard(sc_in: ScorecardCreate):
     sc_id = "SC-" + str(uuid.uuid4())[:8].upper()
     sc = Scorecard(id=sc_id, **sc_in.model_dump())

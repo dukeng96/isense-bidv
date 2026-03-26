@@ -13,9 +13,16 @@ class AnswerOptionType(str, Enum):
 
 class AudioRuleCriterionData(BaseModel):
     max_hold_time_s: Optional[int] = Field(None, description="Max hold call time in seconds")
-    ideal_speaking_rate_wpm: Optional[int] = Field(None, description="Ideal speaking rate in WPM")
+    consultant_speaking_time_ratio_min_percent: Optional[int] = Field(None, ge=0, le=100, description="Min consultant speaking ratio (%)")
+    consultant_speaking_time_ratio_max_percent: Optional[int] = Field(None, ge=0, le=100, description="Max consultant speaking ratio (%)")
+    max_interruptions: Optional[int] = Field(None, description="Maximum number of customer interruptions")
     max_silence_duration_s: Optional[int] = Field(None, description="Max silence duration in seconds")
     overlapping_threshold_percent: Optional[int] = Field(None, ge=0, le=100, description="Overlapping threshold (%)")
+
+    is_hold_time_enabled: bool = True
+    is_speaker_ratio_enabled: bool = True
+    is_interruptions_enabled: bool = True
+    is_silence_enabled: bool = True
 
 class Criterion(BaseModel):
     code: str = Field(..., example="GEN_01")

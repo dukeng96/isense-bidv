@@ -53,7 +53,7 @@ export const ScorecardEditor: React.FC = () => {
   };
 
   const removeCriterion = (idx: number) => {
-    const newCriteria = scorecardState.criteria.filter((_, i) => i !== idx);
+    const newCriteria = scorecardState.criteria.filter((_: Criterion, i: number) => i !== idx);
     setScorecardState({ ...scorecardState, criteria: newCriteria });
   };
 
@@ -73,7 +73,7 @@ export const ScorecardEditor: React.FC = () => {
     setScorecardState({ ...scorecardState, criteria: newCriteria });
   };
 
-  const updateAudioRule = (field: 'max_hold_time_s' | 'ideal_speaking_rate_wpm', value: number) => {
+  const updateAudioRule = (field: keyof NonNullable<Criterion['audio_rules_data']>, value: number) => {
     const newCriteria = [...scorecardState.criteria];
     let audioCriterionIndex = newCriteria.findIndex(c => c.layer === 'audio_rules');
     
@@ -87,7 +87,7 @@ export const ScorecardEditor: React.FC = () => {
         no_score: 0,
         na_score: 0,
         max_score: 10,
-        audio_rules_data: { max_hold_time_s: 30, ideal_speaking_rate_wpm: 120, max_silence_duration_s: 15, overlapping_threshold_percent: 20 }
+        audio_rules_data: { max_hold_time_s: 30, consultant_speaking_time_ratio_min_percent: 40, consultant_speaking_time_ratio_max_percent: 70, max_interruptions: 3, max_silence_duration_s: 10, overlapping_threshold_percent: 20, is_hold_time_enabled: true, is_speaker_ratio_enabled: true, is_interruptions_enabled: true, is_silence_enabled: true }
       } as Criterion);
       audioCriterionIndex = newCriteria.length - 1;
     }
@@ -101,8 +101,44 @@ export const ScorecardEditor: React.FC = () => {
     setScorecardState({ ...scorecardState, criteria: newCriteria });
   };
 
-  const getAudioRule = (field: 'max_hold_time_s' | 'ideal_speaking_rate_wpm', defaultValue: number) => {
-    const audioCriterion = scorecardState.criteria.find(c => c.layer === 'audio_rules');
+  const toggleAudioRule = (field: keyof NonNullable<Criterion['audio_rules_data']>) => {
+    const currentValue = getAudioRule(field, true);
+    const newCriteria = [...scorecardState.criteria];
+    let audioCriterionIndex = newCriteria.findIndex((c: Criterion) => c.layer === 'audio_rules');
+    
+    if (audioCriterionIndex === -1) {
+      newCriteria.push({
+        code: `AUDIO_RULE`,
+        name: 'Giám sát Quy tắc Âm thanh',
+        layer: 'audio_rules',
+        options_type: 'Yes/No',
+        yes_score: 10,
+        no_score: 0,
+        na_score: 0,
+        max_score: 10,
+        audio_rules_data: { max_hold_time_s: 30, consultant_speaking_time_ratio_min_percent: 40, consultant_speaking_time_ratio_max_percent: 70, max_interruptions: 3, max_silence_duration_s: 10, overlapping_threshold_percent: 20, is_hold_time_enabled: true, is_speaker_ratio_enabled: true, is_interruptions_enabled: true, is_silence_enabled: true }
+      } as Criterion);
+      audioCriterionIndex = newCriteria.length - 1;
+    }
+    
+    const audioData = newCriteria[audioCriterionIndex].audio_rules_data || {};
+    newCriteria[audioCriterionIndex] = {
+      ...newCriteria[audioCriterionIndex],
+      audio_rules_data: { ...audioData, [field]: !currentValue }
+    };
+    
+    const newState = { ...scorecardState, criteria: newCriteria };
+    setScorecardState(newState);
+    
+    if (id && id !== 'new') {
+      scorecardApi.updateScorecard(id, newState).then(() => {
+        queryClient.invalidateQueries({ queryKey: ['scorecards'] });
+      });
+    }
+  };
+
+  const getAudioRule = (field: keyof NonNullable<Criterion['audio_rules_data']>, defaultValue: any) => {
+    const audioCriterion = scorecardState.criteria.find((c: Criterion) => c.layer === 'audio_rules');
     if (!audioCriterion || !audioCriterion.audio_rules_data) return defaultValue;
     return (audioCriterion.audio_rules_data as any)[field] || defaultValue;
   };
@@ -110,7 +146,7 @@ export const ScorecardEditor: React.FC = () => {
   if (isLoading) return <div className="p-8 font-bold text-violet-700 animate-pulse">Đang tải cấu hình Scorecard...</div>;
 
   const renderTable = (layer: 'general' | 'business') => {
-    const layerCriteria = scorecardState.criteria.filter(c => c.layer === layer);
+    const layerCriteria = scorecardState.criteria.filter((c: Criterion) => c.layer === layer);
     
     if (layerCriteria.length === 0) {
       return <div className="text-center py-8 text-slate-400 text-sm">Chưa có tiêu chí nào. Bấm thêm mới để tạo.</div>;
@@ -121,9 +157,8 @@ export const ScorecardEditor: React.FC = () => {
         <table className="w-full text-left text-sm mb-6 min-w-[800px]">
           <thead className="text-xs font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">
             <tr>
-              <th className="pb-3 w-10"></th>
-              <th className="pb-3 font-bold">MÃ</th>
-              <th className="pb-3 font-bold w-1/3">TÊN TIÊU CHÍ</th>
+              <th className="pb-3 font-bold w-16">MÃ</th>
+              <th className="pb-3 font-bold w-2/5">TÊN TIÊU CHÍ</th>
               <th className="pb-3 font-bold">LỰA CHỌN</th>
               <th className="pb-3 font-bold text-center">YES</th>
               <th className="pb-3 font-bold text-center">NO</th>
@@ -133,30 +168,37 @@ export const ScorecardEditor: React.FC = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {layerCriteria.map((c) => {
-              const idx = scorecardState.criteria.findIndex(item => item === c);
+            {layerCriteria.map((c: Criterion) => {
+              const idx = scorecardState.criteria.findIndex((item: Criterion) => item === c);
               return (
                 <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                  <td className="py-4"><input type="checkbox" checked className="rounded text-violet-600 focus:ring-violet-500 w-4 h-4" readOnly /></td>
-                  <td className="py-4 text-xs font-mono text-slate-400">
-                    <input className="w-16 bg-transparent border-b-2 border-transparent focus:border-violet-300 outline-none text-slate-700 font-bold" value={c.code} onChange={e => updateCriterion(idx, 'code', e.target.value)} />
+                  <td className="py-4 text-xs font-mono text-slate-400 align-top">
+                    <input className="w-16 bg-transparent border-b-2 border-transparent focus:border-violet-300 outline-none text-slate-700 font-bold mt-1" value={c.code} onChange={e => updateCriterion(idx, 'code', e.target.value)} />
                   </td>
-                  <td className="py-4 font-bold text-slate-700 pr-4">
-                    <input className="w-full bg-transparent border-b-2 border-transparent focus:border-violet-300 outline-none placeholder:font-normal placeholder:text-slate-300" placeholder="Nhập tên tiêu chí..." value={c.name} onChange={e => updateCriterion(idx, 'name', e.target.value)} />
+                  <td className="py-2 font-bold text-slate-700 pr-4 align-top">
+                    <textarea 
+                      className="w-full bg-transparent border-b border-transparent focus:border-violet-300 outline-none placeholder:font-normal placeholder:text-slate-300 resize-none overflow-hidden block text-sm mt-1" 
+                      placeholder="Nhập tên tiêu chí..." 
+                      rows={1}
+                      value={c.name} 
+                      onChange={e => updateCriterion(idx, 'name', e.target.value)} 
+                      onInput={e => { e.currentTarget.style.height = 'auto'; e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px'; }}
+                      onFocus={e => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }}
+                    />
                   </td>
-                  <td className="py-4 pr-4">
+                  <td className="py-4 pr-4 align-top">
                     <select className="px-2 py-1 rounded-md border border-slate-200 text-xs bg-white font-medium" value={c.options_type} onChange={e => updateCriterion(idx, 'options_type', e.target.value)}>
                       <option value="Yes/No/NA">Yes/No/NA</option>
                       <option value="Yes/No">Yes/No</option>
                     </select>
                   </td>
-                  <td className="py-4 text-center"><input type="number" className="w-12 text-center border border-slate-200 bg-white rounded p-1 font-mono" value={c.yes_score || 0} onChange={e => updateCriterion(idx, 'yes_score', parseInt(e.target.value) || 0)} /></td>
-                  <td className="py-4 text-center"><input type="number" className="w-12 text-center border border-slate-200 bg-white rounded p-1 font-mono" value={c.no_score || 0} onChange={e => updateCriterion(idx, 'no_score', parseInt(e.target.value) || 0)} /></td>
-                  <td className="py-4 text-center"><input type="number" className="w-12 text-center border border-slate-200 bg-white rounded p-1 font-mono" value={c.na_score || 0} onChange={e => updateCriterion(idx, 'na_score', parseInt(e.target.value) || 0)} disabled={c.options_type === 'Yes/No'} /></td>
-                  <td className="py-4 text-right font-bold text-violet-700">
+                  <td className="py-4 text-center align-top"><input type="number" className="w-12 text-center border border-slate-200 bg-white rounded p-1 font-mono" value={c.yes_score || 0} onChange={e => updateCriterion(idx, 'yes_score', parseInt(e.target.value) || 0)} /></td>
+                  <td className="py-4 text-center align-top"><input type="number" className="w-12 text-center border border-slate-200 bg-white rounded p-1 font-mono" value={c.no_score || 0} onChange={e => updateCriterion(idx, 'no_score', parseInt(e.target.value) || 0)} /></td>
+                  <td className="py-4 text-center align-top"><input type="number" className="w-12 text-center border border-slate-200 bg-white rounded p-1 font-mono" value={c.na_score || 0} onChange={e => updateCriterion(idx, 'na_score', parseInt(e.target.value) || 0)} disabled={c.options_type === 'Yes/No'} /></td>
+                  <td className="py-4 text-right font-bold text-violet-700 align-top">
                     <input type="number" className="w-12 text-right bg-transparent border-b-2 border-transparent focus:border-violet-300 outline-none" value={c.max_score || 0} onChange={e => updateCriterion(idx, 'max_score', parseInt(e.target.value) || 0)} />
                   </td>
-                  <td className="py-4 text-right">
+                  <td className="py-4 text-right align-top">
                     <button onClick={() => removeCriterion(idx)} className="text-slate-300 hover:text-red-500 transition-colors bg-white p-1 rounded-md border border-slate-200 shadow-sm"><Trash2 size={16} /></button>
                   </td>
                 </tr>
@@ -302,28 +344,86 @@ export const ScorecardEditor: React.FC = () => {
                   <span>s</span>
                 </div>
               </div>
-              <div className="w-10 h-5 bg-violet-600 rounded-full cursor-pointer relative shadow-inner">
-                <div className="absolute right-1 top-1 w-3 h-3 bg-white rounded-full"></div>
+              <div 
+                className={clsx("w-10 h-5 rounded-full cursor-pointer relative shadow-inner transition-colors", getAudioRule('is_hold_time_enabled', true) ? "bg-violet-600" : "bg-slate-300")}
+                onClick={() => toggleAudioRule('is_hold_time_enabled')}
+              >
+                <div className={clsx("absolute top-1 w-3 h-3 bg-white rounded-full transition-all", getAudioRule('is_hold_time_enabled', true) ? "right-1" : "left-1")}></div>
               </div>
             </div>
 
             <div className="border border-slate-100 bg-slate-50 p-4 rounded-xl flex items-center justify-between">
               <div>
-                <div className="font-bold text-slate-800 text-sm mb-1">Speaking rate (Tốc độ nói)</div>
+                <div className="font-bold text-slate-800 text-sm mb-1">Speaker Ratio (Tỷ lệ nói)</div>
                 <div className="text-xs text-slate-500 flex items-center gap-2">
-                  Kiểm soát nhịp điệu tư vấn của nhân viên.
-                  <span className="font-mono text-slate-400 bg-white border border-slate-200 px-1 rounded">IDEAL</span>
+                  Tỷ lệ thời gian tư vấn viên nói.
                   <input 
                     type="number" 
-                    className="w-16 text-center border-b border-transparent focus:border-violet-500 focus:outline-none bg-white font-mono rounded" 
-                    value={getAudioRule('ideal_speaking_rate_wpm', 120)} 
-                    onChange={e => updateAudioRule('ideal_speaking_rate_wpm', parseInt(e.target.value) || 0)} 
+                    className="w-12 text-center border-b border-transparent focus:border-violet-500 focus:outline-none bg-white font-mono rounded" 
+                    value={getAudioRule('consultant_speaking_time_ratio_min_percent', 40)} 
+                    onChange={e => updateAudioRule('consultant_speaking_time_ratio_min_percent', parseInt(e.target.value) || 0)} 
                   />
-                  <span>wpm</span>
+                  <span>-</span>
+                  <input 
+                    type="number" 
+                    className="w-12 text-center border-b border-transparent focus:border-violet-500 focus:outline-none bg-white font-mono rounded" 
+                    value={getAudioRule('consultant_speaking_time_ratio_max_percent', 70)} 
+                    onChange={e => updateAudioRule('consultant_speaking_time_ratio_max_percent', parseInt(e.target.value) || 0)} 
+                  />
+                  <span>%</span>
                 </div>
               </div>
-              <div className="w-10 h-5 bg-violet-600 rounded-full cursor-pointer relative shadow-inner">
-                <div className="absolute right-1 top-1 w-3 h-3 bg-white rounded-full"></div>
+              <div 
+                className={clsx("w-10 h-5 rounded-full cursor-pointer relative shadow-inner transition-colors", getAudioRule('is_speaker_ratio_enabled', true) ? "bg-violet-600" : "bg-slate-300")}
+                onClick={() => toggleAudioRule('is_speaker_ratio_enabled')}
+              >
+                <div className={clsx("absolute top-1 w-3 h-3 bg-white rounded-full transition-all", getAudioRule('is_speaker_ratio_enabled', true) ? "right-1" : "left-1")}></div>
+              </div>
+            </div>
+
+            <div className="border border-slate-100 bg-slate-50 p-4 rounded-xl flex items-center justify-between">
+              <div>
+                <div className="font-bold text-slate-800 text-sm mb-1">Interruptions (Ngắt lời)</div>
+                <div className="text-xs text-slate-500 flex items-center gap-2">
+                  Số lần ngắt lời khách hàng.
+                  <span className="font-mono text-slate-400 bg-white border border-slate-200 px-1 rounded">MAX</span>
+                  <input 
+                    type="number" 
+                    className="w-12 text-center border-b border-transparent focus:border-violet-500 focus:outline-none bg-white font-mono rounded" 
+                    value={getAudioRule('max_interruptions', 3)} 
+                    onChange={e => updateAudioRule('max_interruptions', parseInt(e.target.value) || 0)} 
+                  />
+                  <span>lần</span>
+                </div>
+              </div>
+              <div 
+                className={clsx("w-10 h-5 rounded-full cursor-pointer relative shadow-inner transition-colors", getAudioRule('is_interruptions_enabled', true) ? "bg-violet-600" : "bg-slate-300")}
+                onClick={() => toggleAudioRule('is_interruptions_enabled')}
+              >
+                <div className={clsx("absolute top-1 w-3 h-3 bg-white rounded-full transition-all", getAudioRule('is_interruptions_enabled', true) ? "right-1" : "left-1")}></div>
+              </div>
+            </div>
+
+            <div className="border border-slate-100 bg-slate-50 p-4 rounded-xl flex items-center justify-between">
+              <div>
+                <div className="font-bold text-slate-800 text-sm mb-1">Silence (Thời gian im lặng)</div>
+                <div className="text-xs text-slate-500 flex items-center gap-2">
+                  Thời gian im lặng liên tục.
+                  <span className="font-mono text-slate-400 bg-white border border-slate-200 px-1 rounded">MAX</span>
+                  <input 
+                    type="number" 
+                    className="w-12 text-center border-b border-transparent focus:border-violet-500 focus:outline-none bg-white font-mono rounded" 
+                    value={getAudioRule('max_silence_duration_s', 10)} 
+                    onChange={e => updateAudioRule('max_silence_duration_s', parseInt(e.target.value) || 0)} 
+                  />
+                  <span>s</span>
+                </div>
+              </div>
+              <div 
+                className={clsx("w-10 h-5 rounded-full cursor-pointer relative shadow-inner transition-colors", getAudioRule('is_silence_enabled', true) ? "bg-violet-600" : "bg-slate-300")}
+                onClick={() => toggleAudioRule('is_silence_enabled')}
+              >
+                <div className={clsx("absolute top-1 w-3 h-3 bg-white rounded-full transition-all", getAudioRule('is_silence_enabled', true) ? "right-1" : "left-1")}></div>
               </div>
             </div>
         </div>
