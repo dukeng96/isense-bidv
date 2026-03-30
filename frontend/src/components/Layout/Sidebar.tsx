@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, PhoneCall, BarChart2, Settings } from 'lucide-react';
+import { Home, PhoneCall, BarChart2, Settings, Beaker } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import clsx from 'clsx';
 
@@ -8,6 +8,7 @@ export const Sidebar: React.FC = () => {
     { name: 'Trang chủ', path: '/', icon: Home, exact: true },
     { name: 'Cuộc gọi', path: '/calls', icon: PhoneCall },
     { name: 'Phân tích', path: '/analytics', icon: BarChart2 },
+    { name: 'AI Playground', path: '/playground', icon: Beaker },
     { 
       name: 'Cài đặt', 
       path: '/settings', 
