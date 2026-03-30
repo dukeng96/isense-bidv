@@ -53,94 +53,94 @@ export const SmartImporter: React.FC = () => {
     // Initial popup
     setMockProgress(10);
     
-    // Step 1: Phân tích cấu trúc (8s) (10% -> 35%)
+    // Step 1: Phân tích cấu trúc (~1s)
     addLine("> [Mã hóa] Đang đọc văn bản thô... Done.");
-    await sleep(2000);
+    await sleep(300);
     setMockProgress(15);
     addLine("> [Cấu trúc] Tìm thấy: Mục 1. Kênh tiếp nhận... Done.");
-    await sleep(2000);
+    await sleep(300);
     setMockProgress(22);
     addLine("> [Cấu trúc] Tìm thấy bảng: Mục 3. Bộ câu hỏi xác thực (BCH)... Done.");
-    await sleep(1500);
+    await sleep(200);
     setMockProgress(28);
     addLine("> [Cấu trúc] Tìm thấy bảng: Mục 4. Quy trình thực hiện (5 bước tác nghiệp)... Done.");
-    await sleep(1500);
+    await sleep(200);
     addLine("> [Cấu trúc] Tìm thấy: Mục 5. Các lưu ý khác... Done.");
     setMockProgress(32);
-    await sleep(1000);
+    await sleep(150);
     addLine("> [Phân loại] Đã nhận diện quy trình: Khóa user SmartKids.");
     setMockProgress(35);
 
-    // Step 2: Lọc bỏ thao tác hệ thống (12s) (35% -> 65%)
+    // Step 2: Lọc bỏ thao tác hệ thống (~1.3s)
     setMockStep(2);
     addLine("> [Phân loại hành động] Đang quét 5 bước tác nghiệp...");
-    await sleep(2000);
+    await sleep(300);
     setMockProgress(40);
     addLine("> [Lọc] Bước 1: TVV Tiếp nhận yêu cầu & Xác thực -> [GIỮ LẠI - Thoại].");
-    await sleep(1500);
+    await sleep(200);
     addLine("> [Lọc bỏ] Thao tác: Bot tự so sánh với metadata kênh tiếp nhận -> [BỎ].");
     setMockProgress(46);
-    await sleep(2000);
+    await sleep(300);
     addLine("> [Lọc bỏ] Bước 2: TVV chọn chức năng, tìm kiếm, bấm icon Khóa dịch vụ -> [BỎ - Hệ thống].");
-    await sleep(1500);
+    await sleep(200);
     setMockProgress(52);
     addLine("> [Lọc bỏ] Bước 3: GSV duyệt khóa dịch vụ -> [BỎ - GSV tác nghiệp].");
-    await sleep(1500);
+    await sleep(200);
     addLine("> [Lọc bỏ] Bước 4: Cán bộ hậu kiểm -> [BỎ].");
     setMockProgress(58);
-    await sleep(2000);
+    await sleep(300);
     addLine("> [Lọc] Bước 5: TVV Khuyến cáo khóa SIM 2 chiều -> [GIỮ LẠI - Thoại].");
-    await sleep(1000);
+    await sleep(150);
     addLine("> [Lọc] Bước 5: TVV hướng dẫn khách hàng khai báo cơ quan chức năng -> [GIỮ LẠI - Thoại].");
     setMockProgress(62);
-    await sleep(500);
+    await sleep(50);
     addLine("> [Kết quả] Đã lọc 7/11 hành động không phải thoại.");
     setMockProgress(65);
 
-    // Step 3: Soạn thảo tiêu chí (3s) (65% -> 90%)
+    // Step 3: Soạn thảo tiêu chí (~0.5s)
     setMockStep(3);
     addLine("> [Chuyển đổi logic] Đang soạn thảo câu hỏi chấm điểm...");
-    await sleep(500);
+    await sleep(100);
     setMockProgress(70);
     addLine("> [Gen] Tiêu chí: Khai thác nguyên nhân muốn khóa user (mất ĐT, lộ TT...) -> Done.");
     addLine("> [Gen] Tiêu chí KYC: Xác thực đủ 05 câu hỏi (3 bắt buộc, 2 lựa chọn) -> Done.");
-    await sleep(800);
+    await sleep(150);
     setMockProgress(78);
     addLine("> [Gen] Tiêu chí KYC: Xác nhận chính xác user phụ cần khóa (nếu có >2 user) -> Done.");
     addLine("> [Gen] Tiêu chí: Hướng dẫn KH tự thao tác trên App (nếu KYC sai) -> Done.");
-    await sleep(800);
+    await sleep(150);
     setMockProgress(85);
     addLine("> [Gen] Tiêu chí Khuyến cáo: Hướng dẫn KH liên hệ nhà mạng khóa SIM -> Done.");
     addLine("> [Gen] Tiêu chí Tra soát: Hướng dẫn KH kiểm tra thiết bị, link giả mạo -> Done.");
-    await sleep(500);
+    await sleep(100);
     addLine("> [Gen] Tiêu chí Tra soát: Hướng dẫn KH khai báo cơ quan chức năng -> Done.");
     addLine("> [Hoàn tất] Đã tạo 7 tiêu chí nghiệp vụ draft.");
     setMockProgress(90);
 
-    // Step 4: Kiểm tra & Hoàn thiện (2s) (90% -> 100%)
+    // Step 4: Kiểm tra & Hoàn thiện (~0.4s)
     setMockStep(4);
     addLine("> [Validation] Đang kiểm tra cấu trúc JSON iSense... OK.");
-    await sleep(500);
+    await sleep(100);
     setMockProgress(95);
     addLine("> [Validation] Kiểm tra bộ điểm Yes/No/NA... OK.");
     addLine("> [Validation] Kiểm tra logic Max_Score... OK.");
-    await sleep(800);
+    await sleep(150);
     addLine("> [Tích hợp] Đã thêm Layer General (Chào hỏi, Thái độ) mặc định.");
     addLine("> [Tích hợp] Đã bật các Audio Rules (Hold call, Ngắt lời) mặc định.");
-    await sleep(500);
+    await sleep(100);
     addLine("> [Success] Scorecard \"Khoá user SmartKids\" đã sẵn sàng.");
     
     // Wait for API if needed
     while(!generatedData) {
-      await sleep(500);
+      await sleep(100);
     }
     
     setMockProgress(100);
     setIsMockSuccess(true);
     setMockStep(5);
 
-    // Redirect after 2s
-    await sleep(2000);
+    // Redirect after 0.5s instead of 2s
+    await sleep(500);
     navigate('/edit/new', { state: { importedCriteria: generatedData, importedGoal: goal } });
   };
 

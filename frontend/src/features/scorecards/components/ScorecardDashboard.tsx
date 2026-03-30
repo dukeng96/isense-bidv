@@ -75,10 +75,11 @@ export const ScorecardDashboard: React.FC = () => {
   }, []);
 
   const handleCreateTopic = () => {
-    if (!newTopicName.trim() || !selectedBranchId) return;
+    const virtualBranchId = currentBranches.length > 0 ? selectedBranchId : `hotline_${selectedHotlineId}`;
+    if (!newTopicName.trim() || !virtualBranchId) return;
     const newTopic: TopicLocal = {
       id: `T-${Date.now()}`,
-      branch_id: selectedBranchId,
+      branch_id: virtualBranchId,
       name: newTopicName,
       description: newTopicDesc
     };
@@ -108,7 +109,9 @@ export const ScorecardDashboard: React.FC = () => {
 
   const currentFallback = scorecards.find(s => s.is_global_fallback)?.id || '';
   const currentBranches = branches.filter(b => b.hotline_id === selectedHotlineId);
-  const currentTopics = topics.filter(t => t.branch_id === selectedBranchId);
+  const currentTopics = currentBranches.length > 0 
+    ? topics.filter(t => t.branch_id === selectedBranchId)
+    : topics.filter(t => t.branch_id === `hotline_${selectedHotlineId}`);
   const selectedTopic = topics.find(t => t.id === selectedTopicId);
   const getTopicMapping = (tId: string) => mappings.find(m => m.topic_id === tId);
 
@@ -175,7 +178,9 @@ export const ScorecardDashboard: React.FC = () => {
               <Network size={14} /> Cấu trúc IVR Nhánh
             </div>
             {currentBranches.length === 0 ? (
-              <div className="text-center p-4 text-slate-400 text-sm italic">Không có nhánh nào</div>
+              <div className="text-center p-4 text-slate-400 text-sm italic">
+                Không có nhánh nào.<br/>Quản lý chủ đề trực tiếp cho Hotline bên phải.
+              </div>
             ) : (
               <ul className="space-y-1">
                 {currentBranches.map(branch => (
@@ -205,7 +210,7 @@ export const ScorecardDashboard: React.FC = () => {
 
         {/* Pane 2: Topic Library */}
         <div className="flex-1 border-r border-slate-200 bg-slate-50 flex flex-col relative">
-          {!selectedBranchId ? (
+          {(!selectedBranchId && currentBranches.length > 0) ? (
             <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-8 text-center bg-white/50">
               <Network size={48} className="text-slate-200 mb-4" />
               <p className="text-lg font-medium text-slate-600">Chưa chọn nhánh IVR</p>
@@ -216,7 +221,12 @@ export const ScorecardDashboard: React.FC = () => {
               <div className="p-5 border-b border-slate-200 bg-white flex justify-between items-center shrink-0">
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">Chủ đề hội thoại (Topic)</h2>
-                  <p className="text-xs text-slate-500">Thuộc {branches.find(b => b.id === selectedBranchId)?.name}</p>
+                  <p className="text-xs text-slate-500">
+                    {currentBranches.length > 0 
+                      ? `Thuộc ${branches.find(b => b.id === selectedBranchId)?.name}`
+                      : `Trực tiếp cho Hotline ${hotlines.find(h => h.id === selectedHotlineId)?.phone}`
+                    }
+                  </p>
                 </div>
                 <button 
                   onClick={() => setShowAddTopic(true)}

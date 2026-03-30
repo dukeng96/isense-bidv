@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { scorecardApi } from '../api/scorecardApi';
 import { Criterion } from '@/types';
@@ -36,10 +36,15 @@ const getMockResult = (criterionName: string) => {
 
 export const ScorecardPlayground: React.FC = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [selectedScorecardId, setSelectedScorecardId] = useState<string>('');
   const [fileUploaded, setFileUploaded] = useState(false);
   const [simulationState, setSimulationState] = useState<'idle' | 'running' | 'completed'>('idle');
   const [progress, setProgress] = useState(0);
+
+  // Edit State
+  const [editingCode, setEditingCode] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState<string>('');
 
   const { data: scorecards = [] } = useQuery({
     queryKey: ['scorecards'],
@@ -47,6 +52,32 @@ export const ScorecardPlayground: React.FC = () => {
   });
 
   const selectedScorecard = scorecards.find(sc => sc.id === selectedScorecardId);
+
+  const mutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string, payload: any }) => scorecardApi.updateScorecard(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['scorecards'] });
+      setEditingCode(null);
+    }
+  });
+
+  const handleSaveEdit = (e: React.MouseEvent | React.FormEvent, c: Criterion) => {
+    e.preventDefault();
+    if (!selectedScorecard) return;
+    if (editingName.trim() === '') return;
+
+    const updatedCriteria = selectedScorecard.criteria.map(crit => 
+      crit.code === c.code ? { ...crit, name: editingName } : crit
+    );
+
+    mutation.mutate({
+      id: selectedScorecard.id,
+      payload: {
+        ...selectedScorecard,
+        criteria: updatedCriteria
+      }
+    });
+  };
 
   useEffect(() => {
     let timer: any;
@@ -81,6 +112,7 @@ export const ScorecardPlayground: React.FC = () => {
   const handleReset = () => {
     setSimulationState('idle');
     setProgress(0);
+    setEditingCode(null);
   };
   
   const handleUpload = () => {
@@ -100,11 +132,61 @@ export const ScorecardPlayground: React.FC = () => {
     const result = isCompleted ? getMockResult(c.name) : null;
 
     return (
-      <div key={c.code} className="p-4 border border-slate-200 rounded-xl mb-3 bg-white shadow-sm transition-all">
+      <div key={c.code} className="p-4 border border-slate-200 rounded-xl mb-3 bg-white shadow-sm transition-all group/card hover:border-indigo-200">
         <div className="flex justify-between items-start gap-3">
           <div className="flex-1">
             <span className="text-xs font-bold text-slate-400 mb-1 block uppercase tracking-wider">{c.code}</span>
-            <p className="font-semibold text-slate-800 text-sm leading-relaxed">{c.name}</p>
+            {editingCode === c.code ? (
+              <form onSubmit={(e) => handleSaveEdit(e, c)} className="mt-1 flex items-start gap-2">
+                <textarea 
+                  autoFocus
+                  className="w-full text-sm border-2 border-indigo-200 rounded-lg p-2 outline-none focus:border-indigo-400 min-h-[60px]"
+                  value={editingName}
+                  onChange={(e) => setEditingName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSaveEdit(e, c);
+                    } else if (e.key === 'Escape') {
+                      setEditingCode(null);
+                    }
+                  }}
+                />
+                <div className="flex flex-col gap-1 shrink-0">
+                  <button 
+                    type="submit" 
+                    disabled={mutation.isPending}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-lg disabled:opacity-50"
+                    title="Lưu (Enter)"
+                  >
+                    {mutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => setEditingCode(null)}
+                    disabled={mutation.isPending}
+                    className="bg-slate-100 hover:bg-slate-200 text-slate-600 p-2 rounded-lg"
+                    title="Hủy (Esc)"
+                  >
+                    <XCircle size={16} />
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="flex items-start gap-2 group/edit relative pr-8">
+                <p className="font-semibold text-slate-800 text-sm leading-relaxed">{c.name}</p>
+                <button 
+                  onClick={() => {
+                    setEditingCode(c.code);
+                    setEditingName(c.name);
+                  }}
+                  className="absolute right-0 top-0 opacity-0 group-hover/card:opacity-100 p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-all mt-[-4px]"
+                  title="Chỉnh sửa nội dung tiêu chí"
+                >
+                  <Edit2 size={14} />
+                </button>
+              </div>
+            )}
           </div>
           <div className="shrink-0 w-24 flex justify-end">
             {!isCompleted ? (
@@ -125,7 +207,7 @@ export const ScorecardPlayground: React.FC = () => {
           </div>
         </div>
         
-        {isCompleted && result && (
+        {isCompleted && result && editingCode !== c.code && (
           <div className="mt-3 bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs text-slate-600 flex gap-2">
             <div className="mt-0.5 text-indigo-500 shrink-0"><FileText size={16} /></div>
             <div>
@@ -265,9 +347,9 @@ export const ScorecardPlayground: React.FC = () => {
             {simulationState === 'completed' && selectedScorecard && (
               <button 
                 onClick={() => navigate('/edit/' + selectedScorecard.id)}
-                className="text-xs font-bold text-white bg-slate-800 rounded-lg px-3 py-1.5 hover:bg-slate-900 flex items-center gap-1 shadow-sm"
+                className="text-xs font-bold text-slate-600 bg-slate-100 rounded-lg px-3 py-1.5 hover:bg-slate-200 flex items-center gap-1 shadow-sm transition-colors border border-slate-200"
               >
-                <Edit2 size={14} /> Chỉnh sửa Tiêu chí ngay
+                Cài đặt nâng cao <Edit2 size={12} className="ml-0.5" />
               </button>
             )}
           </div>
